@@ -9,13 +9,12 @@ contract BatchNFT is ERC721URIStorage, Ownable {
 
     struct BatchData {
         string batchId;
-        string medicineName;
-        string activeIngredient;
-        string dosage;
-        string manufacturer;
-        string cdscoCertificate;
-        uint256 manufacturingDate;
-        uint256 expiryDate;
+        string beekeeperId;
+        string hiveId;
+        uint256 harvestDate;
+        string gpsLocation;
+        string floralSource;
+        uint256 quantityKg;
         string status; // active, revoked, expired
         address mintedBy;
     }
@@ -23,21 +22,20 @@ contract BatchNFT is ERC721URIStorage, Ownable {
     mapping(uint256 => BatchData) public batches;
     mapping(string => uint256) public batchIdToToken;
 
-    event BatchMinted(uint256 tokenId, string batchId, string medicineName, address mintedBy);
+    event BatchMinted(uint256 tokenId, string batchId, string beekeeperId, string hiveId, address mintedBy);
     event BatchRevoked(string batchId, address revokedBy);
     event BatchExpired(string batchId);
 
-    constructor() ERC721("MediTraceBatch", "MTB") {}
+    constructor() ERC721("HoneyChainBatch", "HCB") {}
 
     function mintBatch(
         string memory batchId,
-        string memory medicineName,
-        string memory activeIngredient,
-        string memory dosage,
-        string memory manufacturer,
-        string memory cdscoCertificate,
-        uint256 manufacturingDate,
-        uint256 expiryDate
+        string memory beekeeperId,
+        string memory hiveId,
+        uint256 harvestDate,
+        string memory gpsLocation,
+        string memory floralSource,
+        uint256 quantityKg
     ) public onlyOwner {
         require(batchIdToToken[batchId] == 0, "Batch already minted");
 
@@ -48,20 +46,19 @@ contract BatchNFT is ERC721URIStorage, Ownable {
 
         batches[newItemId] = BatchData({
             batchId: batchId,
-            medicineName: medicineName,
-            activeIngredient: activeIngredient,
-            dosage: dosage,
-            manufacturer: manufacturer,
-            cdscoCertificate: cdscoCertificate,
-            manufacturingDate: manufacturingDate,
-            expiryDate: expiryDate,
+            beekeeperId: beekeeperId,
+            hiveId: hiveId,
+            harvestDate: harvestDate,
+            gpsLocation: gpsLocation,
+            floralSource: floralSource,
+            quantityKg: quantityKg,
             status: "active",
             mintedBy: msg.sender
         });
 
         batchIdToToken[batchId] = newItemId;
 
-        emit BatchMinted(newItemId, batchId, medicineName, msg.sender);
+        emit BatchMinted(newItemId, batchId, beekeeperId, hiveId, msg.sender);
     }
 
     function getBatch(string memory batchId) public view returns (BatchData memory) {
@@ -90,8 +87,7 @@ contract BatchNFT is ERC721URIStorage, Ownable {
         
         BatchData memory batch = batches[tokenId];
         bool isActive = keccak256(abi.encodePacked(batch.status)) == keccak256(abi.encodePacked("active"));
-        bool isNotExpired = batch.expiryDate > block.timestamp;
         
-        return isActive && isNotExpired;
+        return isActive;
     }
 }

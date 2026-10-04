@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 async function main() {
-  console.log("Deploying MediTrace contracts...");
+  console.log("Deploying Honey Chain contracts...");
 
   const BatchNFT = await hre.ethers.getContractFactory("BatchNFT");
   const batchNFT = await BatchNFT.deploy();
@@ -17,17 +17,18 @@ async function main() {
   const handoffLoggerAddress = await handoffLogger.getAddress();
   console.log("HandoffLogger deployed to:", handoffLoggerAddress);
 
-  const ColdChainLogger = await hre.ethers.getContractFactory("ColdChainLogger");
-  const coldChainLogger = await ColdChainLogger.deploy();
-  await coldChainLogger.waitForDeployment();
-  const coldChainLoggerAddress = await coldChainLogger.getAddress();
-  console.log("ColdChainLogger deployed to:", coldChainLoggerAddress);
+  const HiveMonitorLogger = await hre.ethers.getContractFactory("HiveMonitorLogger");
+  const hiveMonitorLogger = await HiveMonitorLogger.deploy();
+  await hiveMonitorLogger.waitForDeployment();
+  const hiveMonitorLoggerAddress = await hiveMonitorLogger.getAddress();
+  console.log("HiveMonitorLogger deployed to:", hiveMonitorLoggerAddress);
 
   const addresses = {
     BatchNFT: batchNFTAddress,
     HandoffLogger: handoffLoggerAddress,
-    ColdChainLogger: coldChainLoggerAddress,
-    network: "hardhat-local",
+    HiveMonitorLogger: hiveMonitorLoggerAddress,
+    ColdChainLogger: hiveMonitorLoggerAddress,
+    network: hre.network.name || "amoy",
     deployedAt: new Date().toISOString()
   };
 
@@ -38,12 +39,19 @@ async function main() {
   console.log("Saved to deployedAddresses.json");
 
   const envPath = path.join(__dirname, "../../backend/.env");
-  let envContent = fs.readFileSync(envPath, "utf8");
-  envContent = envContent.replace(/BATCH_NFT_CONTRACT_ADDRESS=.*/, "BATCH_NFT_CONTRACT_ADDRESS=" + batchNFTAddress);
-  envContent = envContent.replace(/HANDOFF_CONTRACT_ADDRESS=.*/, "HANDOFF_CONTRACT_ADDRESS=" + handoffLoggerAddress);
-  envContent = envContent.replace(/COLDCHAIN_CONTRACT_ADDRESS=.*/, "COLDCHAIN_CONTRACT_ADDRESS=" + coldChainLoggerAddress);
-  fs.writeFileSync(envPath, envContent);
-  console.log("backend/.env updated with contract addresses");
+  if (fs.existsSync(envPath)) {
+    let envContent = fs.readFileSync(envPath, "utf8");
+    envContent = envContent.replace(/BATCH_NFT_CONTRACT_ADDRESS=.*/, "BATCH_NFT_CONTRACT_ADDRESS=" + batchNFTAddress);
+    envContent = envContent.replace(/HANDOFF_CONTRACT_ADDRESS=.*/, "HANDOFF_CONTRACT_ADDRESS=" + handoffLoggerAddress);
+    envContent = envContent.replace(/COLDCHAIN_CONTRACT_ADDRESS=.*/, "COLDCHAIN_CONTRACT_ADDRESS=" + hiveMonitorLoggerAddress);
+    if (!envContent.includes("HIVEMONITOR_CONTRACT_ADDRESS=")) {
+      envContent += "\nHIVEMONITOR_CONTRACT_ADDRESS=" + hiveMonitorLoggerAddress;
+    } else {
+      envContent = envContent.replace(/HIVEMONITOR_CONTRACT_ADDRESS=.*/, "HIVEMONITOR_CONTRACT_ADDRESS=" + hiveMonitorLoggerAddress);
+    }
+    fs.writeFileSync(envPath, envContent);
+    console.log("backend/.env updated with contract addresses");
+  }
 }
 
 main().catch((error) => {

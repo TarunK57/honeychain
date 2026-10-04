@@ -3,6 +3,11 @@ const router = express.Router();
 const { handoffContract, signer } = require('../config/blockchain');
 const supabase = require('../config/supabase');
 const { v4: uuidv4 } = require('uuid');
+const localHandoffs = require('../config/localHandoffs');
+
+function isNetworkError(error) {
+  return error instanceof TypeError || /fetch failed|ENOTFOUND|ECONN/i.test(error?.message || '');
+}
 
 // POST /handoffs/log
 router.post('/log', async (req, res) => {
@@ -12,14 +17,23 @@ router.post('/log', async (req, res) => {
       qrToken, locationLat, locationLng 
     } = req.body;
 
-    // Verify the qrToken exists in Supabase driver_qr_assignments and is not already used
-    const { data: assignment, error: fetchError } = await supabase
-      .from('driver_qr_assignments')
-      .select('*')
-      .eq('qr_token', qrToken)
-      .single();
+    let assignment;
+    let assignmentIsLocal = false;
+    try {
+      const { data, error } = await supabase
+        .from('driver_qr_assignments')
+        .select('*')
+        .eq('qr_token', qrToken)
+        .single();
+      if (error && isNetworkError(error)) throw error;
+      assignment = data;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'production' || !isNetworkError(error)) throw error;
+      assignment = localHandoffs.getAssignment(qrToken);
+      assignmentIsLocal = true;
+    }
 
-    if (fetchError || !assignment) {
+    if (!assignment) {
       return res.status(400).json({ error: "Invalid QR token" });
     }
 
@@ -36,20 +50,21 @@ router.post('/log', async (req, res) => {
       fromName,
       toName,
       qrToken,
-      Math.floor(locationLat), // Ensure int256
-      Math.floor(locationLng)
+      Math.floor(locationLat || 0),
+      Math.floor(locationLng || 0)
     );
 
     await tx.wait();
 
     // Mark the qrToken as used in Supabase
-    const { error: updateError } = await supabase
-      .from('driver_qr_assignments')
-      .update({ is_used: true, used_at: new Date().toISOString() })
-      .eq('qr_token', qrToken);
-
-    if (updateError) {
-      console.error("Supabase Update Error:", updateError.message);
+    if (assignmentIsLocal) {
+      localHandoffs.markUsed(qrToken);
+    } else {
+      const { error: updateError } = await supabase
+        .from('driver_qr_assignments')
+        .update({ is_used: true, used_at: new Date().toISOString() })
+        .eq('qr_token', qrToken);
+      if (updateError) console.error("Supabase Update Error:", updateError.message);
     }
 
     res.json({ success: true, txHash: tx.hash });
@@ -61,18 +76,24 @@ router.post('/log', async (req, res) => {
 // POST /handoffs/generate-qr
 router.post('/generate-qr', async (req, res) => {
   try {
-    const { batchAddress, count = 4, stages = [], extraLabels = [] } = req.body;
+    const { batchAddress, count = 5, stages = [], extraLabels = [] } = req.body || {};
+    if (!batchAddress || !Number.isInteger(Number(count)) || Number(count) < 1 || Number(count) > 10) {
+      return res.status(400).json({ error: 'A batch address and a token count from 1 to 10 are required.' });
+    }
+    const defaultHoneyChainStages = ['beekeeper', 'collection_center', 'processor', 'distributor', 'retailer'];
+    const selectedStages = stages.length > 0 ? stages : defaultHoneyChainStages;
+
     const richTokens = [];
     const assignments = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < Number(count); i++) {
       const qrToken = uuidv4();
       let label;
       
-      if (i < stages.length) {
-        label = stages[i];
+      if (i < selectedStages.length) {
+        label = selectedStages[i];
       } else {
-        const extraIdx = i - stages.length;
-        label = extraLabels[extraIdx] || `Extra ${extraIdx + 1}`;
+        const extraIdx = i - selectedStages.length;
+        label = extraLabels[extraIdx] || `Handoff Stage ${extraIdx + 1}`;
       }
       
       richTokens.push({
@@ -80,7 +101,7 @@ router.post('/generate-qr', async (req, res) => {
         stage: label,
         batchAddress: batchAddress,
         label: label,
-        qrValue: "MEDITRACE_HANDOFF::batch=" + batchAddress + "::stage=" + label + "::token=" + qrToken + "::index=" + i + "::total=" + count
+        qrValue: "HONEYCHAIN_HANDOFF::batch=" + batchAddress + "::stage=" + label + "::token=" + qrToken + "::index=" + i + "::total=" + Number(count)
       });
       
       assignments.push({
@@ -91,14 +112,19 @@ router.post('/generate-qr', async (req, res) => {
       });
     }
 
-    // Store in Supabase
-    const { error: insertError } = await supabase
-      .from('driver_qr_assignments')
-      .insert(assignments);
+    let storage = 'supabase';
+    try {
+      const { error: insertError } = await supabase
+        .from('driver_qr_assignments')
+        .insert(assignments);
+      if (insertError) throw insertError;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'production' || !isNetworkError(error)) throw error;
+      localHandoffs.insertAssignments(assignments);
+      storage = 'local';
+    }
 
-    if (insertError) throw insertError;
-
-    res.json({ success: true, tokens: richTokens });
+    res.json({ success: true, tokens: richTokens, storage });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

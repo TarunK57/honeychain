@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import API_BASE_URL from '../config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -18,13 +19,16 @@ import {
   Plus,
   Search,
   CheckCircle2,
-  BarChart4
+  BarChart4,
+  Hexagon,
+  Award
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import supabase from '../config/supabase';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import HoneyAtmosphere from '../components/HoneyAtmosphere';
 
 const SuperAdmin = () => {
   const { user, profile, logout, loading: authLoading } = useAuth();
@@ -61,18 +65,25 @@ const SuperAdmin = () => {
   // 3. Particles Engine
   const particlesInitialized = useRef(false);
   useEffect(() => {
+    document.body.className = 'theme-superadmin';
     if (!particlesInitialized.current) {
       particlesInitialized.current = true;
       initParticlesEngine(async (engine) => {
         await loadSlim(engine);
       }).then(() => setParticlesReady(true));
     }
+    return () => {
+      document.body.className = '';
+    };
   }, []);
 
   // 4. ALL useCallback hooks
   const authFetch = useCallback(async (url, options = {}) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    let token = localStorage.getItem('honeychain_token');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) token = session.access_token;
+    } catch (e) {}
     return fetch(url, {
       ...options,
       headers: {
@@ -87,9 +98,9 @@ const SuperAdmin = () => {
     setLoading(true);
     try {
       const [statsRes, companiesRes, adminsRes] = await Promise.all([
-        authFetch('http://localhost:5000/admin/global-stats'),
-        authFetch('http://localhost:5000/admin/companies'),
-        authFetch('http://localhost:5000/admin/all-admins')
+        authFetch(`${API_BASE_URL}/admin/global-stats`),
+        authFetch(`${API_BASE_URL}/admin/companies`),
+        authFetch(`${API_BASE_URL}/admin/all-admins`)
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -123,13 +134,8 @@ const SuperAdmin = () => {
     setIsCreating(true);
     setMessage({ text: '', type: '' });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('http://localhost:5000/auth/register', {
+      const res = await authFetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
         body: JSON.stringify({
           email: adminForm.email,
           password: adminForm.password,
@@ -140,7 +146,7 @@ const SuperAdmin = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ text: 'Admin created successfully for ' + adminForm.company_name, type: 'success' });
+        setMessage({ text: 'Collection Center Admin created successfully for ' + adminForm.company_name, type: 'success' });
         setAdminForm({ company_name: '', full_name: '', email: '', password: '' });
         fetchSuperData();
       } else {
@@ -154,9 +160,9 @@ const SuperAdmin = () => {
   };
 
   const handleDeleteAdmin = async (userId) => {
-    if (!window.confirm("Permanently delete this administrator account? This action cannot be undone.")) return;
+    if (!window.confirm("Permanently delete this Collection Center administrator account?")) return;
     try {
-      const res = await authFetch(`http://localhost:5000/admin/delete-account/${userId}`, { method: 'DELETE' });
+      const res = await authFetch(`${API_BASE_URL}/admin/delete-account/${userId}`, { method: 'DELETE' });
       if (res.ok) {
         fetchSuperData();
       } else {
@@ -172,10 +178,10 @@ const SuperAdmin = () => {
     background: { color: { value: "transparent" } },
     fpsLimit: 60,
     particles: {
-      color: { value: "#f59e0b" },
-      links: { color: "#f59e0b", distance: 150, enable: true, opacity: 0.1, width: 1 },
+      color: { value: "#B8860B" },
+      links: { color: "#B8860B", distance: 150, enable: true, opacity: 0.1, width: 1 },
       move: { enable: true, speed: 0.5, direction: "none", random: true, outModes: { default: "bounce" } },
-      number: { value: 50, density: { enable: true } },
+      number: { value: 28, density: { enable: true } },
       opacity: { value: 0.2 },
       size: { value: { min: 1, max: 3 } },
     },
@@ -188,6 +194,7 @@ const SuperAdmin = () => {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans flex relative overflow-hidden">
+      <HoneyAtmosphere variant="governance" />
       {particlesReady && (
         <Particles id="tsparticles" options={particleOptions} className="absolute inset-0 z-0 pointer-events-none" />
       )}
@@ -198,14 +205,14 @@ const SuperAdmin = () => {
           <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center rotate-3 shadow-lg shadow-amber-500/20">
             <Globe size={24} className="text-black" />
           </div>
-          <h1 className="font-black text-2xl tracking-tighter text-amber-500">SuperAdmin</h1>
+          <h1 className="font-black text-2xl tracking-tighter text-amber-500">KVIC SuperAdmin</h1>
         </div>
 
         <nav className="flex-1 space-y-2">
           <NavBtn icon={<LayoutDashboard size={20} />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <NavBtn icon={<Building size={20} />} label="Companies" active={activeTab === 'companies'} onClick={() => setActiveTab('companies')} />
-          <NavBtn icon={<UserPlus size={20} />} label="Create Admin" active={activeTab === 'create'} onClick={() => setActiveTab('create')} />
-          <NavBtn icon={<BarChart4 size={20} />} label="Global Stats" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
+          <NavBtn icon={<Building size={20} />} label="Collection Centers" active={activeTab === 'companies'} onClick={() => setActiveTab('companies')} />
+          <NavBtn icon={<UserPlus size={20} />} label="Provision Center Admin" active={activeTab === 'create'} onClick={() => setActiveTab('create')} />
+          <NavBtn icon={<BarChart4 size={20} />} label="Global Honey Stats" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
         </nav>
 
         <button 
@@ -223,7 +230,7 @@ const SuperAdmin = () => {
           {loading && activeTab !== 'create' ? (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />
-              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Synchronizing Platform Data...</p>
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Synchronizing Honey Chain Network Data...</p>
             </div>
           ) : (
             <motion.div
@@ -261,7 +268,7 @@ const NavBtn = ({ icon, label, active, onClick }) => (
 
 const StatCard = ({ icon, label, value }) => (
   <div className="p-8 rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-xl group hover:border-amber-500/30 transition-all shadow-xl">
-    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 text-amber-500 shadow-inner">
+    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-6 text-amber-500 shadow-inner">
       {icon}
     </div>
     <p className="text-gray-500 text-xs font-black uppercase tracking-widest mb-1">{label}</p>
@@ -275,13 +282,13 @@ const OverviewTab = ({ stats, admins }) => {
   return (
     <div className="space-y-12">
       <div>
-        <h2 className="text-4xl font-black tracking-tighter mb-2 text-amber-500">Platform Overview</h2>
-        <p className="text-gray-500 font-medium">Aggregated metrics across all registered companies.</p>
+        <h2 className="text-4xl font-black tracking-tighter mb-2 text-amber-500">KVIC Governance Overview</h2>
+        <p className="text-gray-500 font-medium">Aggregated Honey Chain metrics across all collection centers and rural beekeeping clusters.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatCard icon={<Building size={28} />} label="Active Companies" value={uniqueCompanies} />
-        <StatCard icon={<Users size={28} />} label="Total Admins" value={admins.length} />
-        <StatCard icon={<Activity size={28} />} label="Global Scans" value={stats.totalScans || 0} />
+        <StatCard icon={<Building size={28} />} label="Active Collection Centers" value={uniqueCompanies} />
+        <StatCard icon={<Users size={28} />} label="Center Admins" value={admins.length} />
+        <StatCard icon={<Activity size={28} />} label="Global Verifications" value={stats.totalScans || 0} />
       </div>
     </div>
   );
@@ -289,7 +296,7 @@ const OverviewTab = ({ stats, admins }) => {
 
 const CompaniesTab = ({ companies, admins, onDeleteAdmin }) => (
   <div className="space-y-8">
-    <h2 className="text-3xl font-black tracking-tight">Registered Companies</h2>
+    <h2 className="text-3xl font-black tracking-tight">KVIC Collection Centers</h2>
     <div className="grid grid-cols-1 gap-8">
       {companies.map((company, idx) => {
         const companyAdmins = admins.filter(a => a.company_name === company.company_name);
@@ -297,12 +304,12 @@ const CompaniesTab = ({ companies, admins, onDeleteAdmin }) => (
           <div key={idx} className="p-8 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-xl hover:border-amber-500/30 transition-all space-y-6">
             <div className="flex items-center justify-between border-b border-white/5 pb-6">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-amber-500/10 rounded-[24px] flex items-center justify-center text-amber-500 shadow-inner">
+                <div className="w-16 h-16 bg-amber-500/20 rounded-[24px] flex items-center justify-center text-amber-500 shadow-inner">
                   <Building size={32} />
                 </div>
                 <div>
                   <h4 className="text-2xl font-black">{company.company_name}</h4>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{companyAdmins.length} Authorized Administrators</p>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{companyAdmins.length} Authorized Center Administrators</p>
                 </div>
               </div>
             </div>
@@ -329,14 +336,14 @@ const CompaniesTab = ({ companies, admins, onDeleteAdmin }) => (
               ))}
               {companyAdmins.length === 0 && (
                 <div className="col-span-full py-8 text-center text-gray-600 font-bold italic text-sm">
-                  No individual administrators provisioned for this node yet.
+                  No center administrators provisioned for this node yet.
                 </div>
               )}
             </div>
           </div>
         );
       })}
-      {companies.length === 0 && <p className="text-gray-500 font-bold">No companies registered on the platform yet.</p>}
+      {companies.length === 0 && <p className="text-gray-500 font-bold">No collection centers registered on the network yet.</p>}
     </div>
   </div>
 );
@@ -344,8 +351,8 @@ const CompaniesTab = ({ companies, admins, onDeleteAdmin }) => (
 const CreateAdminTab = ({ form, setForm, onSubmit, loading, message }) => (
   <div className="max-w-2xl mx-auto space-y-8">
     <div className="text-center">
-      <h2 className="text-3xl font-black tracking-tight">Provision New Admin</h2>
-      <p className="text-gray-500">Onboard a new pharmaceutical entity to the MediTrace network.</p>
+      <h2 className="text-3xl font-black tracking-tight">Provision Collection Center Admin</h2>
+      <p className="text-gray-500">Onboard a new KVIC regional collection center to Honey Chain.</p>
     </div>
 
     <form onSubmit={onSubmit} className="p-10 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-xl space-y-6">
@@ -355,16 +362,16 @@ const CreateAdminTab = ({ form, setForm, onSubmit, loading, message }) => (
           {message.text}
         </div>
       )}
-      <Input label="Company Name" placeholder="e.g. Pfizer India" value={form.company_name} onChange={e => setForm({...form, company_name: e.target.value})} required />
+      <Input label="Collection Center Name" placeholder="e.g. KVIC North Apiary Collection Center" value={form.company_name} onChange={e => setForm({...form, company_name: e.target.value})} required />
       <Input label="Admin Full Name" placeholder="e.g. Dr. Rajesh Kumar" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} required />
-      <Input label="Email Address" type="email" placeholder="admin@company.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
+      <Input label="Email Address" type="email" placeholder="admin@kvic-center.org" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
       <Input label="Temporary Password" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required />
       
       <button 
         disabled={loading}
-        className="w-full py-5 bg-amber-500 text-black rounded-2xl font-black text-lg hover:bg-amber-600 transition-all shadow-xl shadow-amber-500/20 disabled:opacity-50"
+        className="w-full py-5 bg-amber-500 text-black rounded-2xl font-black text-lg hover:bg-amber-400 transition-all shadow-xl shadow-amber-500/20 disabled:opacity-50"
       >
-        {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Provision Node Admin'}
+        {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Provision Collection Center Admin'}
       </button>
     </form>
   </div>
@@ -372,12 +379,12 @@ const CreateAdminTab = ({ form, setForm, onSubmit, loading, message }) => (
 
 const GlobalStatsTab = ({ stats, admins }) => (
   <div className="space-y-12">
-    <h2 className="text-3xl font-black tracking-tight">Global Platform Metrics</h2>
+    <h2 className="text-3xl font-black tracking-tight">Global Honey Chain Metrics</h2>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      <StatCard icon={<Package size={28} />} label="Batches Minted" value={stats.totalBatches || 0} />
-      <StatCard icon={<Activity size={28} />} label="Global Scans" value={stats.totalScans || 0} />
-      <StatCard icon={<AlertTriangle size={28} />} label="Security Alerts" value={stats.totalAlerts || 0} />
-      <StatCard icon={<Users size={28} />} label="Network Admins" value={admins.length} />
+      <StatCard icon={<Package size={28} />} label="Honey Batches Minted" value={stats.totalBatches || 0} />
+      <StatCard icon={<Activity size={28} />} label="Global Verifications" value={stats.totalScans || 0} />
+      <StatCard icon={<AlertTriangle size={28} />} label="Hive Anomaly Alerts" value={stats.totalAlerts || 0} />
+      <StatCard icon={<Users size={28} />} label="Center Admins" value={admins.length} />
     </div>
   </div>
 );
@@ -395,14 +402,14 @@ const Input = ({ label, ...props }) => (
 const LoadingScreen = () => (
   <div className="min-h-screen bg-black flex flex-col items-center justify-center">
     <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />
-    <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Authenticating SuperUser...</p>
+    <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Authenticating KVIC SuperUser...</p>
   </div>
 );
 
 const AccessDenied = () => (
   <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white text-center p-8">
     <h2 className="text-4xl font-black tracking-tighter text-amber-500 mb-4">Unauthorized Access</h2>
-    <p className="text-gray-500 font-medium mb-8">This portal is reserved for MediTrace Platform Governance only.</p>
+    <p className="text-gray-500 font-medium mb-8">This portal is reserved for KVIC Central Governance only.</p>
     <Link to="/dashboard" className="px-8 py-4 bg-amber-500 text-black rounded-2xl font-black transition-all">Return to Dashboard</Link>
   </div>
 );

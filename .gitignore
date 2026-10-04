@@ -7,6 +7,9 @@ build/
 ollama/
 **/node_modules/
 **/.env
+**/.local-auth.json
+**/.local-handoffs.json
+**/.local-data.json
 **/build/
 **/artifacts/
 **/cache/

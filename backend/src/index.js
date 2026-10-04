@@ -1,13 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('./config/localAuth').ensureBootstrapSuperadmin();
+}
 const supabase = require('./config/supabase');
 const authRoutes = require('./routes/auth');
 const batchRoutes = require('./routes/batches');
 const handoffRoutes = require('./routes/handoffs');
 const scanRoutes = require('./routes/scans');
-const prescriptionRoutes = require('./routes/prescriptions');
-const reminderRoutes = require('./routes/reminders');
 const adrRoutes = require('./routes/adr');
 const adminRoutes = require('./routes/admin');
 
@@ -21,8 +22,6 @@ app.use('/auth', authRoutes);
 app.use('/batches', batchRoutes);
 app.use('/handoffs', handoffRoutes);
 app.use('/scans', scanRoutes);
-app.use('/prescriptions', prescriptionRoutes);
-app.use('/reminders', reminderRoutes);
 app.use('/adr', adrRoutes);
 app.use('/admin', adminRoutes);
 
@@ -46,12 +45,12 @@ testSupabaseConnection();
 app.get('/health', (req, res) => {
   res.json({
     status: "ok",
-    message: "MediTrace backend running",
+    message: "Honey Chain backend running",
     supabase: supabaseStatus,
     timestamp: new Date().toISOString()
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`MediTrace backend running on port ${PORT}`);
+  console.log(`Honey Chain backend running on port ${PORT}`);
 });

@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children, adminOnly = false, superadminOnly = false })
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="text-blue-500 animate-spin" size={48} />
+        <Loader2 className="text-[var(--accent-color)] animate-spin" size={48} />
       </div>
     );
   }
@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, adminOnly = false, superadminOnly = false })
   if (!profile) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="text-blue-500 animate-spin" size={48} />
+        <Loader2 className="text-[var(--accent-color)] animate-spin" size={48} />
       </div>
     );
   }

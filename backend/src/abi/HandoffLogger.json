@@ -1,0 +1,282 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "batchId",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "fromEntity",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "toEntity",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "HandoffLogged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "batchId",
+        "type": "string"
+      }
+    ],
+    "name": "getHandoffCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "batchId",
+        "type": "string"
+      }
+    ],
+    "name": "getHandoffs",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "batchId",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "fromEntity",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "toEntity",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "fromName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "toName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "qrToken",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256",
+            "name": "locationLat",
+            "type": "int256"
+          },
+          {
+            "internalType": "int256",
+            "name": "locationLng",
+            "type": "int256"
+          }
+        ],
+        "internalType": "struct HandoffLogger.Handoff[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "handoffs",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "batchId",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "fromEntity",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "toEntity",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "fromName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "toName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "qrToken",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "locationLat",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "locationLng",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "batchId",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "fromEntity",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "toEntity",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "fromName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "toName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "qrToken",
+        "type": "string"
+      },
+      {
+        "internalType": "int256",
+        "name": "locationLat",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "locationLng",
+        "type": "int256"
+      }
+    ],
+    "name": "logHandoff",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

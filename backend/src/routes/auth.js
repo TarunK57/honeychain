@@ -1,121 +1,183 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabaseAdmin');
+const localAuth = require('../config/localAuth');
 
-// POST /auth/register
+function isNetworkError(error) {
+  return error instanceof TypeError || /fetch failed|ENOTFOUND|ECONN/i.test(error.message || '');
+}
+
+async function getRequestProfile(req) {
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) return null;
+
+  const localSession = localAuth.getSessionUser(token);
+  if (localSession) return { ...localSession, local: true };
+
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('id', user.id)
+    .single();
+  if (profileError || !profile) return null;
+  return { user, profile };
+}
+
+// Public registration always creates a regular beekeeper account. Only a
+// signed-in superadmin can request an admin account.
 router.post('/register', async (req, res) => {
-  const { email, password, full_name, role } = req.body;
-  const authHeader = req.headers.authorization;
-  
-  let finalRole = 'patient';
+  const { email, password, full_name, company_name } = req.body || {};
+  const requestedRole = req.body?.role;
+  if (!email || !password || !full_name) {
+    return res.status(400).json({ error: 'Name, email, and password are required.' });
+  }
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
 
-  // If a token is provided, check if it belongs to a superadmin
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
+  let finalRole = 'beekeeper';
+  let actor = null;
+  if (req.headers.authorization) {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.role === 'superadmin' && role === 'admin') {
-          finalRole = 'admin';
-        }
-      }
-    } catch (e) {
-      // Ignore auth error for public registration, proceed with 'patient' role
+      actor = await getRequestProfile(req);
+    } catch (err) {
+      console.warn('Could not validate registration authorization:', err.message);
     }
   }
 
+  if (requestedRole && requestedRole !== 'beekeeper' && requestedRole !== 'user') {
+    if (requestedRole !== 'admin' || actor?.profile.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Only a superadmin can create admin accounts.' });
+    }
+    finalRole = 'admin';
+  } else if (requestedRole === 'user') {
+    finalRole = 'beekeeper';
+  }
+
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name,
-          role: finalRole
-        }
-      }
-    });
-
-    if (error) throw error;
-
-    // Manually set the role in the profiles table to override the default trigger
-    if (finalRole !== 'patient') {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          email: email,
-          full_name: full_name,
-          role: finalRole
-        }, { 
-          onConflict: 'id' 
+    let user;
+    let profile;
+    if (finalRole === 'admin') {
+      if (actor?.local) {
+        ({ user, profile } = localAuth.createUser({ email, password, full_name, role: finalRole, company_name }));
+      } else {
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name, role: finalRole, company_name: company_name || null }
         });
-      if (upsertError) {
-        console.error('Profile upsert error:', upsertError.message);
+        if (error) throw error;
+        user = data.user;
+      }
+    } else {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name, role: finalRole } }
+        });
+        if (error) throw error;
+        user = data.user;
+      } catch (error) {
+        if (!isNetworkError(error) || process.env.NODE_ENV === 'production') throw error;
+        ({ user, profile } = localAuth.createUser({ email, password, full_name, role: finalRole }));
       }
     }
 
-    res.json({ success: true, user: data.user });
+    if (!user) throw new Error('Authentication provider did not return a user.');
+
+    if (profile) return res.status(201).json({ success: true, user, profile, role: finalRole, storage: 'local' });
+
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        email: user.email || email,
+        full_name,
+        company_name: finalRole === 'admin' ? (company_name || null) : null,
+        role: finalRole
+      }, { onConflict: 'id' });
+    if (profileError) throw profileError;
+
+    return res.status(201).json({ success: true, user, role: finalRole });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Registration failed:', error.message);
+    const isUnavailable = isNetworkError(error);
+    const status = isUnavailable ? 503 : (/already registered|already exists|duplicate/i.test(error.message) ? 409 : 400);
+    const message = isUnavailable
+      ? 'Registration service is unavailable. Check the Supabase connection and try again.'
+      : (error.message || 'Registration failed.');
+    return res.status(status).json({ error: message });
   }
 });
 
-// POST /auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+    if (profileError) throw profileError;
+
+    return res.json({ success: true, session: data.session, user: data.user, profile });
+  } catch (error) {
+    const isUnavailable = isNetworkError(error);
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        return res.json({ success: true, ...localAuth.signIn(email, password), storage: 'local' });
+      } catch (localError) {
+        if (!isUnavailable && !/Invalid login credentials/i.test(error.message || '')) {
+          return res.status(401).json({ error: error.message || 'Login failed.' });
+        }
+        return res.status(401).json({ error: localError.message || 'Login failed.' });
+      }
+    }
+    return res.status(isUnavailable ? 503 : 401).json({
+      error: isUnavailable ? 'Login service is unavailable. Check the Supabase connection and try again.' : (error.message || 'Login failed.')
     });
-
-    if (error) throw error;
-    res.json({ success: true, session: data.session, user: data.user });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
   }
 });
 
-// POST /auth/logout
 router.post('/logout', async (req, res) => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  const token = (req.headers.authorization || '').split(' ')[1];
+  if (token) localAuth.revokeSession(token);
+  return res.json({ success: true });
 });
 
-// GET /auth/me
 router.get('/me', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "No token provided" });
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) return res.status(401).json({ error: 'No valid bearer token provided.' });
 
-  const token = authHeader.split(' ')[1];
+  const localSession = localAuth.getSessionUser(token);
+  if (localSession) return res.json(localSession);
+
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error) throw error;
+    if (error || !user) throw error || new Error('Invalid session.');
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
-
     if (profileError) throw profileError;
-
-    res.json({ user, profile });
+    return res.json({ user, profile });
   } catch (error) {
-    res.status(401).json({ error: error.message });
+    return res.status(401).json({ error: error.message || 'Invalid session.' });
   }
 });
 
