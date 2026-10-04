@@ -91,7 +91,7 @@ describe('Role-Based Themes', () => {
 
   test('body className is theme-superadmin when logged in as superadmin', async () => {
     const mockSession = {
-      user: { id: 'super-user-id', email: 'super@meditrace.io' }
+      user: { id: 'super-user-id', email: 'super@honeychain.local' }
     };
     mockGetSession.mockResolvedValueOnce({ data: { session: mockSession } });
     mockSingle.mockResolvedValueOnce({
@@ -112,7 +112,7 @@ describe('Role-Based Themes', () => {
 
   test('body className is theme-admin when logged in as admin', async () => {
     const mockSession = {
-      user: { id: 'admin-user-id', email: 'admin@meditrace.io' }
+      user: { id: 'admin-user-id', email: 'admin@honeychain.local' }
     };
     mockGetSession.mockResolvedValueOnce({ data: { session: mockSession } });
     mockSingle.mockResolvedValueOnce({
@@ -133,7 +133,7 @@ describe('Role-Based Themes', () => {
 
   test('body className is theme-patient when logged in as patient', async () => {
     const mockSession = {
-      user: { id: 'patient-user-id', email: 'patient@meditrace.io' }
+      user: { id: 'beekeeper-user-id', email: 'keeper@honeychain.local' }
     };
     mockGetSession.mockResolvedValueOnce({ data: { session: mockSession } });
     mockSingle.mockResolvedValueOnce({
@@ -154,7 +154,7 @@ describe('Role-Based Themes', () => {
 
   test('body className is reset to empty when logout is called', async () => {
     const mockSession = {
-      user: { id: 'admin-user-id', email: 'admin@meditrace.io' }
+      user: { id: 'admin-user-id', email: 'admin@honeychain.local' }
     };
     mockGetSession.mockResolvedValueOnce({ data: { session: mockSession } });
     mockSingle.mockResolvedValueOnce({

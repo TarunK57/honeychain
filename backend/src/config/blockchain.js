@@ -2,7 +2,7 @@ const { ethers } = require('ethers');
 const fs = require('fs');
 const path = require('path');
 
-const provider = new ethers.JsonRpcProvider(process.env.POLYGON_RPC_URL || process.env.POLYGON_AMOY_RPC || "https://rpc-amoy.polygon.technology");
+const provider = new ethers.JsonRpcProvider(process.env.LOCAL_RPC_URL || process.env.POLYGON_RPC_URL || process.env.POLYGON_AMOY_RPC || "https://rpc-amoy.polygon.technology");
 
 // Load ABIs
 const batchNFTAbi = require('../abi/BatchNFT.json');

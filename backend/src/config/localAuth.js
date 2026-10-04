@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const storePath = path.join(__dirname, '../../.local-auth.json');
-const bootstrapEmail = (process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com').toLowerCase();
-const bootstrapPassword = process.env.MEDITRACE_SUPERADMIN_PASSWORD || 'Superadmin@123';
+const bootstrapEmail = (process.env.HONEYCHAIN_SUPERADMIN_EMAIL || process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com').toLowerCase();
+const bootstrapPassword = process.env.HONEYCHAIN_SUPERADMIN_PASSWORD || process.env.MEDITRACE_SUPERADMIN_PASSWORD || 'Superadmin@123';
 
 function readStore() {
   try {
@@ -55,7 +55,7 @@ function ensureBootstrapSuperadmin() {
     const salt = crypto.randomBytes(16).toString('hex');
     store.users.push({
       id: crypto.randomUUID(),
-      email: process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com',
+      email: process.env.HONEYCHAIN_SUPERADMIN_EMAIL || process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com',
       full_name: 'KVIC SuperAdmin',
       company_name: 'KVIC Central Governance',
       role: 'superadmin',
@@ -71,7 +71,7 @@ function ensureBootstrapSuperadmin() {
   // The local development superadmin uses the explicitly configured bootstrap
   // credentials so resetting them does not depend on remote Supabase access.
   const salt = crypto.randomBytes(16).toString('hex');
-  existing.email = process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com';
+  existing.email = process.env.HONEYCHAIN_SUPERADMIN_EMAIL || process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com';
   existing.full_name = 'KVIC SuperAdmin';
   existing.company_name = 'KVIC Central Governance';
   existing.role = 'superadmin';

@@ -724,7 +724,7 @@ const AccessDenied = () => (
       <ShieldAlert size={48} />
     </div>
     <h2 className="text-4xl font-black tracking-tighter mb-4">Access Denied</h2>
-    <p className="text-gray-500 max-w-md mb-10 font-medium">Your credentials do not grant access to the MediTrace administrative node. This event has been logged.</p>
+    <p className="text-gray-500 max-w-md mb-10 font-medium">Your credentials do not grant access to the Honey Chain administrative portal. This event has been logged.</p>
     <Link to="/dashboard" className="px-10 py-4 bg-[#1A73E8] text-white rounded-2xl font-black hover:brightness-110 transition-all">Return to Dashboard</Link>
   </div>
 );

@@ -7,7 +7,7 @@ export async function apiFetch(path, options) {
     return await fetch(`${API_BASE_URL}${path}`, options);
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error(`Cannot reach the MediTrace backend at ${API_BASE_URL}. Make sure the backend server is running.`);
+      throw new Error(`Cannot reach the Honey Chain backend at ${API_BASE_URL}. Make sure the backend server is running.`);
     }
     throw error;
   }

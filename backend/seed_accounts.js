@@ -1,13 +1,13 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-const email = process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com';
-const password = process.env.MEDITRACE_SUPERADMIN_PASSWORD;
+const email = process.env.HONEYCHAIN_SUPERADMIN_EMAIL || process.env.MEDITRACE_SUPERADMIN_EMAIL || 'Superadmin@gmail.com';
+const password = process.env.HONEYCHAIN_SUPERADMIN_PASSWORD || process.env.MEDITRACE_SUPERADMIN_PASSWORD;
 const fullName = 'KVIC SuperAdmin';
 const companyName = 'KVIC Central Governance';
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY || !password) {
-  console.error('Set SUPABASE_URL, SUPABASE_SERVICE_KEY, and MEDITRACE_SUPERADMIN_PASSWORD in backend/.env first.');
+  console.error('Set SUPABASE_URL, SUPABASE_SERVICE_KEY, and HONEYCHAIN_SUPERADMIN_PASSWORD in backend/.env first.');
   process.exit(1);
 }
 
