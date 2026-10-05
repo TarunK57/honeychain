@@ -113,17 +113,6 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    const dot = document.getElementById('cursor-dot');
-    const ring = document.getElementById('cursor-ring');
-    const move = (e) => {
-      if (dot) { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; }
-      if (ring) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; }
-    };
-    window.addEventListener('mousemove', move);
-    return () => window.removeEventListener('mousemove', move);
-  }, []);
-
-  useEffect(() => {
     if (user) fetchData();
   }, [user, fetchData]);
 
@@ -188,22 +177,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-black text-white font-sans flex relative overflow-hidden">
       <HoneyAtmosphere variant="beekeeper" />
-      {/* Custom Cursor */}
-      <div id="cursor-dot" className="hidden lg:block" style={{
-        position: 'fixed', width: 8, height: 8,
-        borderRadius: '50%', backgroundColor: '#F59E0B',
-        pointerEvents: 'none', zIndex: 9999,
-        transform: 'translate(-50%, -50%)',
-        transition: 'none'
-      }} />
-      <div id="cursor-ring" className="hidden lg:block" style={{
-        position: 'fixed', width: 32, height: 32,
-        borderRadius: '50%', border: '2px solid #F59E0B',
-        pointerEvents: 'none', zIndex: 9998,
-        transform: 'translate(-50%, -50%)',
-        transition: 'left 0.12s ease, top 0.12s ease'
-      }} />
-
       {particlesReady && (
         <Particles id="tsparticles" options={particleOptions} className="absolute inset-0 z-0 pointer-events-none" />
       )}

@@ -695,7 +695,7 @@ const NavBtn = ({ icon, label, active, onClick, isLogout = false }) => (
       {icon}
     </button>
     {/* Tooltip */}
-    <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#0c0c0c] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs font-bold text-gray-200 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 shadow-xl z-50 whitespace-nowrap">
+    <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-[#0c0c0c] border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs font-bold text-gray-200 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 shadow-xl z-50 whitespace-nowrap">
       {label}
     </div>
   </div>

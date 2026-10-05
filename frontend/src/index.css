@@ -115,8 +115,8 @@ body [class~="bg-black/40"][class*="rounded-"][class*="border"] {
   box-shadow: 0 12px 30px rgba(46, 52, 43, .07), inset 0 1px rgba(255,255,255,.72);
   transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease, background-color .24s ease;
 }
-body [class~="bg-white/5"][class*="rounded-"][class*="border"]:hover,
-body [class~="bg-white/10"][class*="rounded-"][class*="border"]:hover {
+body [class~="bg-white/5"][class*="rounded-"][class*="border"]:not([class~="fixed"]):hover,
+body [class~="bg-white/10"][class*="rounded-"][class*="border"]:not([class~="fixed"]):hover {
   border-color: color-mix(in srgb, var(--accent-color) 42%, var(--line)) !important;
   box-shadow: 0 18px 38px rgba(46, 52, 43, .11), inset 0 1px rgba(255,255,255,.78);
   transform: translateY(-2px);
